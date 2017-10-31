@@ -14,6 +14,7 @@ BOT_NAME = 'rdinfo'
 SPIDER_MODULES = ['rdinfo.spiders']
 NEWSPIDER_MODULE = 'rdinfo.spiders'
 
+SQLITE_DB = "/root/data/roadstatus.sqlite"
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 USER_AGENT = 'RoadInfoScraper v0.0.1 (https://Gh0stRAT.com/roadinfo)'
