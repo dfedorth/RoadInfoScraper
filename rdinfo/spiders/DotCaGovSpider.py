@@ -2,6 +2,7 @@
 import logging
 import scrapy
 import sqlite3
+import time
 from hashlib import sha256
 from scrapy import Request
 
@@ -34,7 +35,12 @@ class DotCaGovSpider(scrapy.Spider):
             self.logger.error(f"Received HTTP Status {response.status} for road {road}")
             return
         status_id = self.get_or_insert_status(status_txt)
-        self.insert_roadinfo(road, status_id)
+        try:
+            last_modified_str = response.headers["Last-Modified"].decode("utf8")
+            last_modified = time.strftime("%s", time.strptime(last_modified_str, "%a, %d %b %Y %H:%M:%S %Z"))
+        except KeyError:
+            last_modified = 0
+        self.insert_roadinfo(road, status_id, last_modified)
 
     def insert_status(self, status_sha256, status_txt, cursor=None):
         if cursor is None:
@@ -58,11 +64,11 @@ class DotCaGovSpider(scrapy.Spider):
             self.logger.debug("Existing status found: " + str(existing_status[0]))
             return existing_status[0]
     
-    def insert_roadinfo(self, road_name, status_id, cursor=None):
+    def insert_roadinfo(self, road_name, status_id, last_modified, cursor=None):
         if cursor is None:
             cursor = self.conn.cursor()
         self.logger.debug("Inserting new roadinfo")
-        cursor.execute("INSERT INTO roadinfo (road_name, status_id) VALUES (?, ?)", (road_name, status_id))
+        cursor.execute("INSERT INTO roadinfo (road_name, status_id, last_modified) VALUES (?, ?, ?)", (road_name, status_id, last_modified))
         self.conn.commit()
         self.logger.debug("Finished inserting new roadinfo " + str(cursor.lastrowid))
 
