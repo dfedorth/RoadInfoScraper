@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import os
 import logging
 import scrapy
 import sqlite3
+import sys
 import time
 from hashlib import sha256
 from scrapy import Request
@@ -12,14 +14,28 @@ class DotCaGovSpider(scrapy.Spider):
     version = "0.0.1"
     allowed_domains = ["dot.ca.gov"]
     base_url = "http://www.dot.ca.gov/hq/roadinfo/"
-    conn = sqlite3.connect("/root/data/roadstatus.sqlite")
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 
-    def __init__(self):
+    @classmethod
+    def from_crawler(cls, crawler):
+        settings = crawler.settings
+        return cls(settings)
+
+    def __init__(self, settings):
         # Silence log messages we don't care about
         logging.getLogger("scrapy.middleware").setLevel(logging.WARNING)
         logging.getLogger("scrapy.statscollectors").setLevel(logging.WARNING)
+        
+        # Load sqlite DB from settings
+        db_path = settings.get("SQLITE_DB", None)
+        if db_path is None:
+            self.logger.fatal("Please configure 'SQLITE_DB' before running this spider.")
+            sys.exit(1)
+        if not os.path.exists(db_path):
+            self.logger.fatal(f"Unable to locate SQLITE_DB at '{db_path}'")
+            sys.exit(1)
+        self.conn = sqlite3.connect(db_path)
 
     def start_requests(self):
         self.logger.info(f"Starting {self.name} v{self.version}...")
